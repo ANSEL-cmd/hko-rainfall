@@ -36,3 +36,4 @@ a line draws a continuous curve through those spikes and makes them look like a
 slow rise and fall, when what actually happened is that no rain fell for a week
 and then 120 mm fell in one day. A bar chart shows that. A line chart would have
 hidden it.
+I first tried a line chart for the whole year. It buried the wet season in a flat line. Restricting to June–August and using bars made the heavy days visible.
