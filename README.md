@@ -20,10 +20,11 @@ Observatory does keep a record — 49,492 rows of it.
 
 ## What the picture shows
 
-It shows daily total rainfall at the Hong Kong Observatory for the first eight
-months of 2026. January and February are almost dry; the rain arrives in March
-and peaks in June, with one day above 120 mm. It **hides** two things: the
-annual total, which you would have to add up yourself, and how the same months
+It shows daily total rainfall at the Hong Kong Observatory for the 2026 wet
+season, June to August. In those three months alone there were four days above
+100 mm and thirteen days above 50 mm — the heaviest, at 123 mm, fell on 15 June.
+It **hides** two things: the rest of the year (which was almost dry — the wet
+season is the story, but not the whole record) and how these same three months
 looked in previous years, which would need a second chart built on the other
 49,000 rows of the file.
 
