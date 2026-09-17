@@ -1,30 +1,31 @@
-# The phenomenon
+# Hong Kong rainfall, 2026
 
-<!-- This is the SD5913 assignment 2 template. Everything in this file is yours to
-replace, and the check counts words: comments like this one are not words, so
-delete each one as you write. Start with the heading: name the phenomenon.
-
-Then, in this order, at least 150 words in total.
-
-New to folders, paths, or the files here whose names start with a dot? Read
-https://github.com/sd5913/pfad/blob/2026/reference/files.md first. Ten minutes. -->
-
-![what the picture is](out/plot.png)
+![2026 daily rainfall at the Hong Kong Observatory](out/rainfall-2026.png)
 
 ## The phenomenon
 
-<!-- What goes up and down, and why you looked at it. -->
+Rain. The Hong Kong Observatory has measured how much falls each day since 1884.
+This repo looks at the 2026 record: one number per day, in millimetres, for the
+first eight months. I looked at it because rain is the one Hong Kong phenomenon
+that everybody experiences but nobody keeps a personal record of, and the
+Observatory does keep a record — 49,492 rows of it.
 
 ## The source
 
-<!-- A link to the page or endpoint the file came from, and one line on what is in
-the file: how many rows, what a row means, what the units are. -->
+- **From:** <https://data.weather.gov.hk/weatherAPI/cis/csvfile/HKO/ALL/daily_HKO_RF_ALL.csv>
+- **File in this repo:** [`data/rainfall-daily.csv`](data/rainfall-daily.csv)
+- **What a row is:** one calendar day. Five columns: year, month, day, total
+  rainfall in millimetres, and a data-quality flag (`C` means complete).
+  The file has 49,492 rows, covering 1884-03-01 to 2026-08-31.
 
 ## What the picture shows
 
-<!-- Two or three sentences. Including what it hides: every transformation throws
-something away, and naming what yours threw away is the easiest way to sound like
-you know what you did. -->
+It shows daily total rainfall at the Hong Kong Observatory for the first eight
+months of 2026. January and February are almost dry; the rain arrives in March
+and peaks in June, with one day above 120 mm. It **hides** two things: the
+annual total, which you would have to add up yourself, and how the same months
+looked in previous years, which would need a second chart built on the other
+49,000 rows of the file.
 
 ## Run it
 
