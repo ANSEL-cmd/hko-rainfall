@@ -1,140 +1,405 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["matplotlib"]
+# dependencies = [
+#     "matplotlib",
+# ]
 # ///
 
-"""
-Hong Kong Observatory daily rainfall, 2026 wet season (June–August).
-
-    uv run plot.py
-"""
-
 import csv
-import datetime as dt
+import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 
-FILE = "rainfall-daily.csv"
-PICTURE = "rainfall-2026.png"
+
+DATA_FILE = Path("data/rainfall-daily.csv")
+OUTPUT_FILE = Path("out/rain-curtain.png")
+
 YEAR = 2026
-MONTHS = (6, 7, 8)        # 只保留 6、7、8 月
-LABEL_ABOVE = 100         # 只标 >= 100 mm 的日子
-
-HERE = Path(__file__).parent
-DATA = HERE / "data" / FILE
-OUT = HERE / "out"
-
-# ---------- the look ----------
-BG = "#faf3e0"            # pale yellow background
-GRID = "#d9cfae"          # slightly darker than the background
-INK = "#3a3226"           # text colour, warm dark brown
+MONTHS = [6, 7, 8]
 
 
-def rows(path):
-    kept = []
-    with path.open(encoding="utf-8-sig", newline="") as handle:
-        for line in csv.reader(handle):
-            if line and line[0].strip().isdigit():
-                kept.append(line)
-    return kept
+def read_rainfall(path):
+    """Read daily rainfall data from the Hong Kong Observatory CSV."""
+
+    data = []
+
+    with open(path, "r", encoding="utf-8-sig") as file:
+        next(file)
+        next(file)
+
+        reader = csv.DictReader(file)
+
+        for row in reader:
+            try:
+                year = int(row["年/Year"])
+                month = int(row["月/Month"])
+                day = int(row["日/Day"])
+                value = row["數值/Value"]
+
+                if year != YEAR or month not in MONTHS:
+                    continue
+
+                if value in ("***", ""):
+                    rainfall = 0.0
+                else:
+                    rainfall = float(value)
+
+                data.append((month, day, rainfall))
+
+            except (ValueError, KeyError):
+                continue
+
+    return data
+
+
+def draw_rain_curtain(data):
+
+    values = [value for _, _, value in data]
+
+    maximum = max(values)
+    total = sum(values)
+    average = total / len(values)
+
+    fig, ax = plt.subplots(figsize=(15, 10))
+
+    background = "#F3F0E8"
+    ink = "#234B68"
+    dark = "#183C55"
+    light = "#6D8494"
+
+    fig.patch.set_facecolor(background)
+    ax.set_facecolor(background)
+
+    ax.set_xlim(-1, len(data))
+    ax.set_ylim(-18, 108)
+
+    # --------------------------------------------------
+    # Continuous rain field
+    # --------------------------------------------------
+
+    for day_index, (_, _, rainfall) in enumerate(data):
+
+        if rainfall <= 0:
+            continue
+
+        # Convert rainfall to visual density.
+        strength = math.sqrt(rainfall / maximum)
+
+        # More rainfall = denser rain.
+        density = int(2 + strength * 18)
+
+        spacing = 0.8 / max(density, 1)
+
+        start_x = day_index - 0.4
+
+        for j in range(density):
+
+            x = start_x + (j + 0.5) * spacing
+
+            # Slight diagonal direction.
+            tilt = -0.08
+
+            # More rainfall = darker rain.
+            alpha = 0.12 + strength * 0.55
+
+            # More rainfall = slightly thicker rain.
+            linewidth = 0.35 + strength * 0.65
+
+            ax.plot(
+                [x, x + tilt],
+                [2, 98],
+                color=ink,
+                linewidth=linewidth,
+                alpha=alpha,
+                solid_capstyle="round",
+            )
+
+    # --------------------------------------------------
+    # Month boundaries
+    # --------------------------------------------------
+
+    month_names = {
+        6: "JUNE",
+        7: "JULY",
+        8: "AUGUST",
+    }
+
+    current_month = None
+    month_start = 0
+    month_ranges = []
+
+    for i, (month, _, _) in enumerate(data):
+
+        if month != current_month:
+
+            if current_month is not None:
+                month_ranges.append(
+                    (current_month, month_start, i)
+                )
+
+            current_month = month
+            month_start = i
+
+    month_ranges.append(
+        (current_month, month_start, len(data))
+    )
+
+    for index, (month, start, end) in enumerate(month_ranges):
+
+        if index > 0:
+
+            ax.plot(
+                [start - 0.5, start - 0.5],
+                [0, 100],
+                color=ink,
+                linewidth=0.5,
+                alpha=0.10,
+            )
+
+        center = (start + end) / 2
+
+        ax.text(
+            center,
+            -4.0,
+            month_names[month],
+            ha="center",
+            va="top",
+            fontsize=8,
+            fontweight="bold",
+            color=ink,
+            alpha=0.55,
+        )
+
+    # --------------------------------------------------
+    # Small date markers
+    # --------------------------------------------------
+
+    for i, (month, day, _) in enumerate(data):
+
+        # Show every fifth day.
+        if day % 5 == 0:
+
+            ax.plot(
+                [i, i],
+                [-1.4, -0.4],
+                color=light,
+                linewidth=0.45,
+                alpha=0.35,
+            )
+
+            ax.text(
+                i,
+                -2.0,
+                f"{day:02d}",
+                ha="center",
+                va="top",
+                fontsize=6.5,
+                color=light,
+                alpha=0.55,
+            )
+
+    # --------------------------------------------------
+    # Title
+    # --------------------------------------------------
+
+    # Keep the upper-left area completely clean.
+    ax.text(
+        -0.5,
+        107,
+        "RAIN CURTAIN",
+        ha="left",
+        va="top",
+        fontsize=24,
+        fontweight="bold",
+        color=dark,
+    )
+
+    ax.text(
+        -0.5,
+        102.5,
+        "Hong Kong · Daily rainfall · June — August 2026",
+        ha="left",
+        va="top",
+        fontsize=9,
+        color=ink,
+        alpha=0.55,
+    )
+
+    # --------------------------------------------------
+    # Top 3 rainfall events
+    # --------------------------------------------------
+
+    ranked = sorted(
+        enumerate(data),
+        key=lambda item: item[1][2],
+        reverse=True,
+    )
+
+    top_events = ranked[:3]
+
+    # Put the labels in the upper-right area.
+    # They no longer overlap with the title.
+    for rank, (index, (month, day, rainfall)) in enumerate(
+        top_events
+    ):
+
+        if rainfall <= 0:
+            continue
+
+        # Small marker above the corresponding rain column.
+        ax.scatter(
+            index,
+            98,
+            s=10,
+            color=dark,
+            zorder=5,
+        )
+
+        # Short connector line.
+        ax.plot(
+            [index, index],
+            [98.5, 101],
+            color=dark,
+            linewidth=0.45,
+            alpha=0.35,
+        )
+
+        # Place labels toward the upper-right.
+        label_x = len(data) - 2
+
+        label_y = 104.5 - rank * 2.3
+
+        ax.text(
+            label_x,
+            label_y,
+            f"{day:02d}.{month:02d}   {rainfall:.1f} mm",
+            ha="right",
+            va="center",
+            fontsize=7,
+            color=dark,
+            alpha=0.75,
+        )
+
+    # --------------------------------------------------
+    # Statistics
+    # --------------------------------------------------
+
+    # Maximum
+    ax.text(
+        -0.5,
+        -8.0,
+        f"{maximum:.1f}",
+        ha="left",
+        va="top",
+        fontsize=15,
+        fontweight="bold",
+        color=dark,
+    )
+
+    ax.text(
+        -0.5,
+        -11.0,
+        "MAX mm",
+        ha="left",
+        va="top",
+        fontsize=6.5,
+        color=light,
+        alpha=0.8,
+    )
+
+    # Average
+    ax.text(
+        len(data) / 2,
+        -8.0,
+        f"{average:.1f}",
+        ha="center",
+        va="top",
+        fontsize=15,
+        fontweight="bold",
+        color=dark,
+    )
+
+    ax.text(
+        len(data) / 2,
+        -11.0,
+        "AVERAGE mm / DAY",
+        ha="center",
+        va="top",
+        fontsize=6.5,
+        color=light,
+        alpha=0.8,
+    )
+
+    # Total
+    ax.text(
+        len(data),
+        -8.0,
+        f"{total:,.1f}",
+        ha="right",
+        va="top",
+        fontsize=15,
+        fontweight="bold",
+        color=dark,
+    )
+
+    ax.text(
+        len(data),
+        -11.0,
+        "TOTAL mm",
+        ha="right",
+        va="top",
+        fontsize=6.5,
+        color=light,
+        alpha=0.8,
+    )
+
+    # --------------------------------------------------
+    # Small data note
+    # --------------------------------------------------
+
+    ax.text(
+        len(data),
+        -14.5,
+        "HONG KONG OBSERVATORY · 92 DAILY RECORDS",
+        ha="right",
+        va="top",
+        fontsize=6.5,
+        color=light,
+        alpha=0.55,
+    )
+
+    # --------------------------------------------------
+    # Clean frame
+    # --------------------------------------------------
+
+    ax.axis("off")
+
+    OUTPUT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    plt.savefig(
+        OUTPUT_FILE,
+        dpi=300,
+        bbox_inches="tight",
+        facecolor=background,
+    )
+
+    plt.close()
 
 
 def main():
-    table = rows(DATA)
-    print(f"{DATA.name}: {len(table)} rows. The first one: {table[0]}")
 
-    dates, values = [], []
-    for year, month, day, value, quality in table:
-        if int(year) != YEAR:
-            continue
-        if int(month) not in MONTHS:
-            continue
-        if value.strip() == "***":
-            continue
-        if value.strip() == "Trace":
-            value = "0.0"
-        dates.append(dt.date(int(year), int(month), int(day)))
-        values.append(float(value))
-    print(f"{len(values)} values, from {min(values)} to {max(values)} mm")
+    data = read_rainfall(DATA_FILE)
 
-    colours = []
-    for v in values:
-        if v >= 100:
-            colours.append("#c0392b")
-        elif v >= 50:
-            colours.append("#2c6e9b")
-        else:
-            colours.append("#a8c8e0")
+    if not data:
+        raise ValueError("No rainfall data found.")
 
-    fig, ax = plt.subplots(figsize=(13, 5.5))
-    fig.patch.set_facecolor(BG)
-    ax.set_facecolor(BG)
+    draw_rain_curtain(data)
 
-    ax.bar(dates, values, color=colours, width=0.8, edgecolor="none", zorder=3)
-
-    # 每 20 mm 一条横向灰线
-    ax.yaxis.grid(True, linestyle="-", linewidth=0.6, color=GRID, alpha=0.9, zorder=0)
-    ax.set_axisbelow(True)
-
-    # 50 mm 虚线
-    ax.axhline(50, linestyle="--", linewidth=0.8, color="#b58b4c", alpha=0.8, zorder=1)
-
-    # ---- 标注：放在柱子顶端，左右错开 ----
-    big_days = [(d, v) for d, v in zip(dates, values) if v >= LABEL_ABOVE]
-    big_days.sort(key=lambda p: p[0])
-    # 左右偏移（天）：-3, 0, +3 轮流用，避免相邻重叠
-    offsets = [-3, 0, 3]
-    for k, (d, v) in enumerate(big_days):
-        dx = offsets[k % 3]
-        ax.annotate(
-            f"{d.strftime('%d %b')}",
-            xy=(d, v),                                    # 箭头指到柱子顶端
-            xytext=(d + dt.timedelta(days=dx), v + 8),    # 文字放上方，左右错开
-            ha="center", va="bottom", fontsize=9, color="#8a4b1f",
-            arrowprops=dict(arrowstyle="-", color="#b58b4c", lw=0.6, alpha=0.8),
-            bbox=dict(boxstyle="round,pad=0.18", fc=BG, ec="none", alpha=0.9),
-        )
-    print(f"labelled {len(big_days)} days above {LABEL_ABOVE} mm")
-
-    # 横轴：每 10 天一个刻度
-    ax.xaxis.set_major_locator(mdates.DayLocator(interval=10))
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
-    ax.set_xlim(dates[0] - dt.timedelta(days=2), dates[-1] + dt.timedelta(days=2))
-
-    # 给标注留出上方空间
-    ax.set_ylim(0, max(values) * 1.18)
-
-    for side in ["top", "right"]:
-        ax.spines[side].set_visible(False)
-    for side in ["left", "bottom"]:
-        ax.spines[side].set_color(INK)
-        ax.spines[side].set_linewidth(0.9)
-
-    ax.tick_params(colors=INK, labelsize=9)
-    ax.set_xlabel("day, June to August 2026", fontsize=11, color=INK)
-    ax.set_ylabel("daily total rainfall, mm", fontsize=11, color=INK)
-
-    days100 = sum(1 for v in values if v >= 100)
-    days50 = sum(1 for v in values if v >= 50)
-    ax.set_title(
-        "Hong Kong Observatory — the 2026 wet season",
-        fontsize=15, color=INK, pad=32, loc="left",
-    )
-    ax.text(
-        0.0, 1.015,
-        f"June to August 2026 · "
-        f"{days100} days above 100 mm · {days50} days above 50 mm",
-        transform=ax.transAxes, fontsize=10, color="#8a4b1f", va="bottom",
-    )
-
-    fig.tight_layout()
-
-    OUT.mkdir(exist_ok=True)
-    fig.savefig(OUT / PICTURE, dpi=150, facecolor=BG)
-    print(f"saved out/{PICTURE}")
-    plt.show()
+    print(f"Saved to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
