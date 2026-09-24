@@ -25,6 +25,7 @@ def read_rainfall(path):
     data = []
 
     with open(path, "r", encoding="utf-8-sig") as file:
+        # The CSV has two title lines before the actual column headers.
         next(file)
         next(file)
 
@@ -203,7 +204,6 @@ def draw_rain_curtain(data):
     # Title
     # --------------------------------------------------
 
-    # Keep the upper-left area completely clean.
     ax.text(
         -0.5,
         107,
@@ -238,47 +238,43 @@ def draw_rain_curtain(data):
 
     top_events = ranked[:3]
 
-    # Put the labels in the upper-right area.
-    # They no longer overlap with the title.
-    for rank, (index, (month, day, rainfall)) in enumerate(
-        top_events
-    ):
+    # Different colors for the three highlighted rainfall events.
+    event_colors = [
+        "#183C55",
+        "#4F7185",
+        "#8A9DA8",
+    ]
+
+    for rank, (index, (month, day, rainfall)) in enumerate(top_events):
 
         if rainfall <= 0:
             continue
 
-        # Small marker above the corresponding rain column.
+        marker_color = event_colors[rank]
+
+        # Small colored dot above the corresponding rain column.
         ax.scatter(
             index,
-            98,
-            s=10,
-            color=dark,
+            99.5,
+            s=18,
+            color=marker_color,
             zorder=5,
         )
 
-        # Short connector line.
-        ax.plot(
-            [index, index],
-            [98.5, 101],
-            color=dark,
-            linewidth=0.45,
-            alpha=0.35,
-        )
-
-        # Place labels toward the upper-right.
+        # Data label in the upper-right.
+        # The dot and text use the same color as the marker.
         label_x = len(data) - 2
-
         label_y = 104.5 - rank * 2.3
 
         ax.text(
             label_x,
             label_y,
-            f"{day:02d}.{month:02d}   {rainfall:.1f} mm",
+            f"●  {day:02d}.{month:02d}   {rainfall:.1f} mm",
             ha="right",
             va="center",
             fontsize=7,
-            color=dark,
-            alpha=0.75,
+            color=marker_color,
+            alpha=0.85,
         )
 
     # --------------------------------------------------
