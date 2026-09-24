@@ -60,3 +60,8 @@ and the image.
 - I added a small amount of supporting information, including the three
   highest rainfall events and summary statistics, while keeping these
   elements secondary to the rain field.
+- I refined the visual markers for the three highest rainfall events. Instead
+  of using long lines to connect the data labels to the rain field, I used
+  small colored dots. Each event has a different color, and the same color
+  is used for its corresponding label. This keeps the data readable without
+  making the image feel too much like an infographic.
